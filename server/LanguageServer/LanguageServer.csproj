@@ -8,14 +8,26 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Antlr4 Include="grammer/*.g4">
-      <Generator>MSBuild:Compile</Generator>
-      <CustomToolNamespace>LanguageServer</CustomToolNamespace>
+    <Antlr4 Include="grammar/*.g4">
+      <Package>LanguageServer</Package>
+      <Listener>False</Listener>
+      <Visitor>True</Visitor>
+      <GenerateListener>false</GenerateListener>
+      <GenerateVisitor>true</GenerateVisitor>
     </Antlr4>
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Antlr4.Runtime.Standard" Version="4.13.1" />
+    <Compile Include="obj/Debug/net9.0/CobolLexer.cs" />
+    <Compile Include="obj/Debug/net9.0/CobolParser.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Antlr4.CodeGenerator" Version="4.6.6">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="Antlr4.Runtime" Version="4.6.6" />
     <PackageReference Include="Microsoft.VisualStudio.LanguageServer.Protocol" Version="17.2.8" />
     <PackageReference Include="StreamJsonRpc" Version="2.22.11" />
   </ItemGroup>

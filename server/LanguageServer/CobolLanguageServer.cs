@@ -64,14 +64,28 @@ namespace LanguageServer
         {
             try
             {
-                var inputStream = new AntlrInputStream(text);
-                // TODO: CobolLexer and CobolParser will be generated from grammar files
-                // var lexer = new CobolLexer(inputStream);
-                // var tokenStream = new CommonTokenStream(lexer);
-                // var parser = new CobolParser(tokenStream);
+                var parser = new CobolParserWrapper(text);
+                var tree = parser.Parse();
 
-                var compilationUnit = new CompilationUnit(documentUri, null); // Temporarily using null for Tree
+                var compilationUnit = new CompilationUnit(documentUri, tree);
                 documents[documentUri] = compilationUnit;
+
+                if (parser.HasErrors)
+                {
+                    // Report errors to the client
+                    var diagnostics = parser.Errors.Select(error => new Diagnostic
+                    {
+                        Message = error,
+                        Severity = DiagnosticSeverity.Error,
+                        Source = "COBOL"
+                    }).ToArray();
+
+                    rpc.NotifyWithParameterObjectAsync("textDocument/publishDiagnostics", new Microsoft.VisualStudio.LanguageServer.Protocol.PublishDiagnosticParams
+                    {
+                        Uri = new Uri(documentUri),
+                        Diagnostics = diagnostics
+                    });
+                }
             }
             catch (Exception ex)
             {

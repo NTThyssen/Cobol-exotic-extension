@@ -388,7 +388,7 @@ ZEROES : Z E R O E S;
 ZEROS : Z E R O S;
 
 INTEGERLITERAL_WITH_K: INTEGERLITERAL ('K' | 'k');
-CURRENCY_SYMBOL : [\p{Sc}];
+//CURRENCY_SYMBOL : [\p{Sc}];
 
 // whitespace, line breaks, comments, ...
 NEWLINE : '\r'? '\n' -> channel(HIDDEN);
