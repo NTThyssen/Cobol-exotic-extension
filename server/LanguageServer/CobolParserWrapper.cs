@@ -10,7 +10,7 @@ namespace LanguageServer
     {
         private readonly CobolLexer lexer;
         private readonly ITokenStream tokenStream;
-        private readonly CobolParser parser;
+        public CobolParser parser { get;  set; }
         private readonly ParsingErrorListener errorListener;
 
         public CobolParserWrapper(string input)
@@ -29,6 +29,7 @@ namespace LanguageServer
         {
             // Get the start rule name from your CobolParser.g4
             var startContext = parser.startRule();
+
             return startContext;
         }
 

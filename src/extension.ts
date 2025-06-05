@@ -31,19 +31,26 @@ export function activate(context: vscode.ExtensionContext) {
 	context.subscriptions.push(disposable);
 
 	// Server is implemented in C# and built with dotnet
-	const serverPath = context.asAbsolutePath(path.join('server', 'LanguageServer', 'bin', 'Debug', 'net6.0', 'LanguageServer.dll'));
+	const serverPath = context.asAbsolutePath(path.join('server', 'LanguageServer', 'bin', 'Debug', 'net9.0', 'LanguageServer.dll'));
 
 	// Server options - using C# executable
 	const serverOptions: ServerOptions = {
 		run: {
 			command: 'dotnet',
 			args: [serverPath],
-			transport: TransportKind.pipe
+			transport: TransportKind.stdio
 		},
 		debug: {
 			command: 'dotnet',
 			args: [serverPath, '--debug'],
-			transport: TransportKind.pipe
+			transport: TransportKind.stdio,
+        options: {
+            env: {
+
+                ...process.env,
+                VSLS_SERVER_DEBUG: "true"
+            }
+        }
 		}
 	};
 
@@ -51,7 +58,7 @@ export function activate(context: vscode.ExtensionContext) {
 	const clientOptions: LanguageClientOptions = {
 		documentSelector: [{ scheme: 'file', language: 'cobol' }],
 		synchronize: {
-			fileEvents: vscode.workspace.createFileSystemWatcher('**/*.{cbl,cob,cobol}')
+			fileEvents: vscode.workspace.createFileSystemWatcher('**/*.{cbl,cob,cpy}')
 		}
 	};
 
@@ -63,8 +70,18 @@ export function activate(context: vscode.ExtensionContext) {
 		clientOptions
 	);
 
+	// Add error handling and logging
+	client.onDidChangeState((e) => {
+		console.log(`Client state changed: ${e.newState}`);
+	});
+
 	// Start the client. This will also launch the server
-	client.start();
+	try {
+		console.log('Starting COBOL Language Client...');
+		client.start();
+	} catch (err) {
+		console.error('Failed to start COBOL Language Client:', err);
+	}
 }
 
 // This method is called when your extension is deactivated

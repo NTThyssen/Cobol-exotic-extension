@@ -20,6 +20,8 @@
   <ItemGroup>
     <Compile Include="obj/Debug/net9.0/CobolLexer.cs" />
     <Compile Include="obj/Debug/net9.0/CobolParser.cs" />
+    <Compile Include="obj/Debug/net9.0/CobolParserVisitor.cs" />
+    <Compile Include="obj/Debug/net9.0/CobolParserBaseVisitor.cs" />
   </ItemGroup>
 
   <ItemGroup>

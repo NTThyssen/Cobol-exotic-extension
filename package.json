@@ -9,7 +9,9 @@
   "categories": [
     "Other"
   ],
-  "activationEvents": [],
+  "activationEvents": [
+    "onLanguage:cobol"
+  ],
   "main": "./dist/extension.js",
   "contributes": {
     "commands": [
@@ -17,7 +19,13 @@
         "command": "cobol-language-support.helloWorld",
         "title": "Hello World"
       }
-    ]
+    ],
+    "languages": [{
+      "id": "cobol",
+      "aliases": ["COBOL", "cobol"],
+      "extensions": [".cbl", ".cob", ".cobol", ".cpy"],
+      "configuration": "./language-configuration.json"
+    }]
   },
   "scripts": {
     "vscode:prepublish": "npm run package",
