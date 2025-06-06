@@ -180,19 +180,78 @@ namespace LanguageServer
             return Task.FromResult(new Hover());
         }
 
-        [JsonRpcMethod("textDocument/definition",UseSingleObjectParameterDeserialization = true)]
-        public Task<Location> TextDocumentDefinition(TextDocumentPositionParams @params)
+        [JsonRpcMethod("textDocument/definition", UseSingleObjectParameterDeserialization = true)]
+        public Task<Location[]> TextDocumentDefinition(TextDocumentPositionParams @params)
         {
-            var location = new Location
+            var callUnit = GetUnit<CallStatementUnit>(@params.TextDocument.Uri.ToString());
+            if (callUnit == null) return Task.FromResult(Array.Empty<Location>());
+
+            // Find if we're clicking on a CALL statement
+            var callInfo = callUnit.CallStatements.FirstOrDefault(c =>
+                c.Location.Contains(@params.Position));
+
+            if (callInfo != null)
             {
-                Uri = @params.TextDocument.Uri,
-                Range = new Microsoft.VisualStudio.LanguageServer.Protocol.Range
+                // Here we would analyze the program name and determine possible targets
+                // For now, let's simulate two possible targets as an example
+                var possibleLocations = new List<Location>();
+
+                // Search in includes folder for possible program files
+                var workspacePath = new Uri(@params.TextDocument.Uri.ToString()).LocalPath;
+                var workspaceDir = Path.GetDirectoryName(workspacePath);
+                if (workspaceDir != null)
                 {
-                    Start = new Position(0, 0),
-                    End = new Position(0, 0)
+                    var includesPath = Path.Combine(workspaceDir, "includes");
+
+                    if (Directory.Exists(includesPath))
+                    {
+                        // Search for files that match the program name
+                        var files = Directory.GetFiles(includesPath, $"{callInfo.ProgramName}*.cbl", SearchOption.AllDirectories)
+                                           .Concat(Directory.GetFiles(includesPath, $"{callInfo.ProgramName}*.cpy", SearchOption.AllDirectories));
+
+                        foreach (var file in files)
+                        {
+                            possibleLocations.Add(new Location
+                            {
+                                Uri = new Uri(file),
+                                Range = new Microsoft.VisualStudio.LanguageServer.Protocol.Range
+                                {
+                                    Start = new Position(0, 0),
+                                    End = new Position(0, 0)
+                                }
+                            });
+                        }
+                    }
                 }
-            };
-            return Task.FromResult(location);
+
+                // If we found any locations, return them
+                if (possibleLocations.Count > 0)
+                {
+                    return Task.FromResult(possibleLocations.ToArray());
+                }
+                var location = new Location
+                {
+                    Uri = new Uri(@params.TextDocument.Uri.ToString()),
+                    Range = new Microsoft.VisualStudio.LanguageServer.Protocol.Range
+                    {
+                        Start = new Position(0, 0),
+                        End = new Position(0, 0)
+                    }
+                };
+                var location2 = new Location
+                {
+                    Uri = new Uri(@params.TextDocument.Uri.ToString()),
+                    Range = new Microsoft.VisualStudio.LanguageServer.Protocol.Range
+                    {
+                        Start = new Position(1, 0),
+                        End = new Position(1, 0)
+                    }
+                };
+                // If no locations found, return empty array
+                var y = new List<Location> { location, location2 };
+                return Task.FromResult(y.ToArray());
+            }
+            return null;
         }
 
         private async Task ScanWorkspaceFolder(Uri workspaceFolderUri, string includesPath)
