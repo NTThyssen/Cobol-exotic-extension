@@ -9,6 +9,7 @@ using System.Linq;
 using Antlr4.Runtime.Tree;
 using LanguageServer.Visitors;
 using LanguageServer.Extensions;
+using Newtonsoft.Json.Linq;
 
 namespace LanguageServer
 {
@@ -251,27 +252,68 @@ namespace LanguageServer
                 var y = new List<Location> { location, location2 };
                 return Task.FromResult(y.ToArray());
             }
-            return null;
+            return Task.FromResult(Array.Empty<Location>());
         }
 
         private async Task ScanWorkspaceFolder(Uri workspaceFolderUri, string includesPath)
         {
             try
             {
-                var folderPath = Path.Combine(new Uri(workspaceFolderUri.ToString()).LocalPath, includesPath);
-                if (!Directory.Exists(folderPath))
+                var workspacePath = new Uri(workspaceFolderUri.ToString()).LocalPath;
+
+                // Get workspace settings
+                var configurationParams = new ConfigurationParams
                 {
-                    return;
+                    Items = new[]
+                    {
+                        new ConfigurationItem
+                        {
+                            Section = "cobol"
+                        }
+                    }
+                };
+
+                var response = await rpc.InvokeAsync<JToken[]>("workspace/configuration", configurationParams);
+                var programPath = response?[0]?["programPath"]?.ToString();
+
+                var foldersToScan = new List<string>();
+
+                // Add custom program path if specified
+                if (!string.IsNullOrEmpty(programPath))
+                {
+                    var customPath = programPath.StartsWith("/") 
+                        ? programPath // Absolute path
+                        : Path.Combine(workspacePath, programPath); // Relative path
+                    
+                    if (Directory.Exists(customPath))
+                    {
+                        foldersToScan.Add(customPath);
+                    }
+                }
+                else
+                {
+                    // If no custom path, scan the entire workspace
+                    foldersToScan.Add(workspacePath);
                 }
 
-                var cobolFiles = Directory.GetFiles(folderPath, "*.cbl", SearchOption.AllDirectories)
-                    .Concat(Directory.GetFiles(folderPath, "*.cpy", SearchOption.AllDirectories));
-
-                foreach (var file in cobolFiles)
+                // Always add includes path if it exists
+                var includesFolderPath = Path.Combine(workspacePath, includesPath);
+                if (Directory.Exists(includesFolderPath))
                 {
-                    var fileUri = new Uri(file).ToString();
-                    var content = await File.ReadAllTextAsync(file);
-                    await ParseAndAnalyzeDocument(fileUri, content);
+                    foldersToScan.Add(includesFolderPath);
+                }
+
+                foreach (var folder in foldersToScan)
+                {
+                    var cobolFiles = Directory.GetFiles(folder, "*.cbl", SearchOption.AllDirectories)
+                        .Concat(Directory.GetFiles(folder, "*.cpy", SearchOption.AllDirectories));
+
+                    foreach (var file in cobolFiles)
+                    {
+                        var fileUri = new Uri(file).ToString();
+                        var content = await File.ReadAllTextAsync(file);
+                        await ParseAndAnalyzeDocument(fileUri, content);
+                    }
                 }
             }
             catch (Exception ex)

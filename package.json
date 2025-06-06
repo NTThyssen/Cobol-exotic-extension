@@ -20,6 +20,16 @@
         "title": "Hello World"
       }
     ],
+    "configuration": {
+      "title": "COBOL Language Support",
+      "properties": {
+        "cobol.programPath": {
+          "type": "string",
+          "default": "",
+          "description": "Custom path to search for COBOL program files. If not specified, the entire workspace will be scanned."
+        }
+      }
+    },
     "languages": [{
       "id": "cobol",
       "aliases": ["COBOL", "cobol"],
