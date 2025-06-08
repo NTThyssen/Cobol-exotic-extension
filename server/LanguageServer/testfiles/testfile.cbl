@@ -6,7 +6,7 @@
        DATA DIVISION.
        WORKING-STORAGE SECTION.
        01  EMPLOYEE-RECORD.
-           COPY MYBOOK.
+           COPY COPYBOOK.
            05  EMPLOYEE-ID              PIC 9(6).
            05  EMPLOYEE-NAME.
                10  FIRST-NAME           PIC X(15).

@@ -8,15 +8,14 @@ using Microsoft.VisualStudio.LanguageServer.Protocol;
 
 namespace LanguageServer.Visitors
 {
-    public class IdentificationVisitor : CobolParserBaseVisitor<object>
+    public  class IdentificationVisitor : CobolParserBaseVisitor<object>
     {
-        private readonly IdentificationUnit _unit;
 
+        private readonly IdentificationUnit _unit;
         public IdentificationVisitor(IdentificationUnit unit)
         {
             _unit = unit;
         }
-
         public override object VisitProgramIdParagraph(CobolParser.ProgramIdParagraphContext context)
         {
 

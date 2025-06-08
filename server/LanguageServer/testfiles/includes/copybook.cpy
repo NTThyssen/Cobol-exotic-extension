@@ -1,4 +1,4 @@
-        01  AV-DYNCALL         
+        01  AV-DYNCALL.         
            88 ABCD123S VALUE 'ABCD123S'.
            88 ABCD123T VALUE 'ABCD123T'.
            88 ABCD123U VALUE 'ABCD123U'.

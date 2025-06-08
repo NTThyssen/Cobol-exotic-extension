@@ -16,25 +16,17 @@ namespace LanguageServer
     public class CobolLanguageServer
     {
         private readonly JsonRpc rpc;
-        private readonly Dictionary<string, List<ICobolUnit>> documents;
 
+        private readonly WorkspaceFileHandler documents;
         private readonly Dictionary<string, string> programNamesToUri = new Dictionary<string, string>();
 
         public CobolLanguageServer(JsonRpc rpc)
         {
             this.rpc = rpc;
-            this.documents = new Dictionary<string, List<ICobolUnit>>();
+            this.documents = new WorkspaceFileHandler();
             this.rpc.AddLocalRpcTarget(this);
         }
 
-        private T? GetUnit<T>(string uri) where T : class, ICobolUnit
-        {
-            if (documents.TryGetValue(uri, out var units))
-            {
-                return units.OfType<T>().FirstOrDefault();
-            }
-            return null;
-        }
 
         [JsonRpcMethod("initialize", UseSingleObjectParameterDeserialization =  true)]
         public async Task<InitializeResult> Initialize(InitializeParams @params)
@@ -98,11 +90,20 @@ namespace LanguageServer
                 var preprocessor = new CobolPreprocessor(text);
                 var preTree = preprocessor.Parse();
                 
-                var preVisitor = new PreProcessorVisitor();
+                var copybookUnit = new CopybookUnit(documentUri, preTree);
+
+
+
+        
+
+                var preVisitor = new PreProcessorVisitor(copybookUnit, documents);
                 preVisitor.Visit(preTree);
 
+                // Remove lines that match: optional whitespace, COPY, whitespace, identifier, dot, optional whitespace
+                var regex = new System.Text.RegularExpressions.Regex(@"^\s*COPY\s+[-A-Za-z0-9_]+\.\s*$", System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.Multiline);
+                var newText = regex.Replace(text, copybookUnit.CopybookText);
                 
-                var parser = new CobolParserWrapper(text);
+                var parser = new CobolParserWrapper(newText);
                 var tree = parser.Parse();
 
                 // Create units first, these will be manipulated by the visitors
@@ -110,22 +111,19 @@ namespace LanguageServer
                 var callUnit = new CallStatementUnit(documentUri, tree);
                 var includeUnit = new IncludeUnit(documentUri, tree);
 
-                // Create different visitors and units
-                var callVisitor = new CallStatementVisitor(callUnit);
-                var includeVisitor = new CallStatementVisitor(callUnit);
+                var cobolVisitor = new CallstatementVisitor(callUnit);
                 var identificationVisitor = new IdentificationVisitor(identificationUnit);
-
-                callVisitor.Visit(tree);
-                includeVisitor.Visit(tree);
+                cobolVisitor.Visit(tree);
                 identificationVisitor.Visit(tree);
 
                 var units = new List<ICobolUnit>
                 {
                     callUnit,
-                    identificationUnit
+                    identificationUnit,
+                    copybookUnit,
                 };
 
-                documents[documentUri] = units;
+                documents.AddUnits(documentUri,units);
                 if(identificationUnit.programName != null && !string.IsNullOrEmpty(identificationUnit.programName))
                 {
                     // Add the program name to the dictionary
@@ -170,7 +168,7 @@ namespace LanguageServer
         [JsonRpcMethod("textDocument/didClose", UseSingleObjectParameterDeserialization = true)]
         public Task TextDocumentDidClose(DidCloseTextDocumentParams @params)
         {
-            documents.Remove(@params.TextDocument.Uri.ToString());
+            documents.RemoveDocument(@params.TextDocument.Uri.ToString());
             return Task.CompletedTask;
         }
 
@@ -183,7 +181,7 @@ namespace LanguageServer
         [JsonRpcMethod("textDocument/hover", UseSingleObjectParameterDeserialization = true)]
         public Task<Hover> TextDocumentHover(TextDocumentPositionParams @params)
         {
-            var callUnit = GetUnit<CallStatementUnit>(@params.TextDocument.Uri.ToString());
+            var callUnit = documents.GetUnit<CallStatementUnit>(@params.TextDocument.Uri.ToString());
     if (callUnit == null) return Task.FromResult(new Hover());
 
     // Find if we're hovering over a CALL statement
@@ -209,20 +207,23 @@ namespace LanguageServer
         [JsonRpcMethod("textDocument/definition", UseSingleObjectParameterDeserialization = true)]
         public Task<Location[]> TextDocumentDefinition(TextDocumentPositionParams @params)
         {
-            var callUnit = GetUnit<CallStatementUnit>(@params.TextDocument.Uri.ToString());
+            var callUnit = documents.GetUnit<CallStatementUnit>(@params.TextDocument.Uri.ToString());
+            var copyUnit = documents.GetUnit<CopybookUnit>(@params.TextDocument.Uri.ToString());
+
             if (callUnit == null) return Task.FromResult(Array.Empty<Location>());
 
-            // Find if we're clicking on a CALL statement
+
             var callInfo = callUnit.CallStatements.FirstOrDefault(c =>
-                c.Location.Contains(@params.Position));
+                {
+                    var adjustedPosition = new Position(@params.Position.Line + copyUnit.lineOffSet, @params.Position.Character);
+                    return c.Location.Contains(adjustedPosition);
+                });
 
             if (callInfo != null)
             {
                 // Here we would analyze the program name and determine possible targets
                 // For now, let's simulate two possible targets as an example
                 var possibleLocations = new List<Location>();
-
-
 
           
                     var files = callInfo.ProgramName.Split(',')
@@ -331,11 +332,22 @@ namespace LanguageServer
                 {
                     foldersToScan.Add(includesFolderPath);
                 }
+                
+                foreach (var folder in foldersToScan)
+                {
+                    var includeFiles = Directory.GetFiles(folder, "*.cpy", SearchOption.AllDirectories).ToList();
+                     foreach (var file in includeFiles)
+                    {
+                        var fileUri = new Uri(file).LocalPath;
+                        var copybookName = Path.GetFileNameWithoutExtension(file);
+                         documents.AddIncludeFile(copybookName.ToUpper(), fileUri);
+                    }
+                }
 
                 foreach (var folder in foldersToScan)
                 {
-                    var cobolFiles = Directory.GetFiles(folder, "*.cbl", SearchOption.AllDirectories);
-                        
+                    var cobolFiles = Directory.GetFiles(folder, "*.cbl", SearchOption.AllDirectories).ToList();
+
 
                     foreach (var file in cobolFiles)
                     {

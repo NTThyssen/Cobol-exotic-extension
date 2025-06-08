@@ -8,7 +8,11 @@ public class CopybookUnit : ICobolUnit
             Tree = tree;
         }
 
-        public string Uri { get; }
+        public string Uri { get; set; } = string.Empty;
+        public string CopybookName { get; set; } = string.Empty;
+        public string CopybookText { get; set; } = string.Empty;
+
+        public int lineOffSet { get; set; } = 0;
         public ParserRuleContext? Tree { get; }
 
     ParserRuleContext? ICobolUnit.Tree => throw new NotImplementedException();

@@ -9,11 +9,11 @@ using Range = Microsoft.VisualStudio.LanguageServer.Protocol.Range;
 
 namespace LanguageServer.Visitors
 {
-    public class CallStatementVisitor : CobolParserBaseVisitor<object>
+    public class CallstatementVisitor : CobolParserBaseVisitor<object>
     {
         private readonly CallStatementUnit _unit;
 
-        public CallStatementVisitor(CallStatementUnit unit)
+        public CallstatementVisitor(CallStatementUnit unit)
         {
             _unit = unit;
         }
@@ -26,8 +26,9 @@ namespace LanguageServer.Visitors
             if (programNameContext == null) return null;
 
             string programName = programNameContext.Trim('\'', '"');
-            
+
             // Create range for the CALL statement location
+            
             var range = new Range
             {
                 Start = new Position
@@ -43,7 +44,9 @@ namespace LanguageServer.Visitors
             };
 
             // Get the original source text
-            string sourceText = context.GetText();
+            string sourceText = context.generalIdentifier() != null
+                ? context.generalIdentifier().GetText()
+                : context.constantName().GetText().Replace("'", "");
 
             // Add to our unit
             _unit.AddCallStatement(programName, range, sourceText);
