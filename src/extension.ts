@@ -3,6 +3,7 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import {
+	ConfigurationParams,
 	LanguageClient,
 	LanguageClientOptions,
 	ServerOptions,
@@ -75,6 +76,7 @@ export function activate(context: vscode.ExtensionContext) {
 		console.log(`Client state changed: ${e.newState}`);
 	});
 
+    
 	// Start the client. This will also launch the server
 	try {
 		console.log('Starting COBOL Language Client...');

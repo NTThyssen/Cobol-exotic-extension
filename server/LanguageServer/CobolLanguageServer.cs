@@ -18,6 +18,8 @@ namespace LanguageServer
         private readonly JsonRpc rpc;
         private readonly Dictionary<string, List<ICobolUnit>> documents;
 
+        private readonly Dictionary<string, string> programNamesToUri = new Dictionary<string, string>();
+
         public CobolLanguageServer(JsonRpc rpc)
         {
             this.rpc = rpc;
@@ -52,6 +54,7 @@ namespace LanguageServer
             {
                 Capabilities = new ServerCapabilities
                 {
+
                     TextDocumentSync = new TextDocumentSyncOptions
                     {
                         OpenClose = true,
@@ -62,7 +65,8 @@ namespace LanguageServer
                         TriggerCharacters = new[] { "." }
                     },
                     HoverProvider = true,
-                    DefinitionProvider = true
+                    DefinitionProvider = true,
+                    
                 }
             };
         }
@@ -90,25 +94,46 @@ namespace LanguageServer
         {
             try
             {
+
+                var preprocessor = new CobolPreprocessor(text);
+                var preTree = preprocessor.Parse();
+                
+                var preVisitor = new PreProcessorVisitor();
+                preVisitor.Visit(preTree);
+
+                
                 var parser = new CobolParserWrapper(text);
                 var tree = parser.Parse();
 
-                // Create units first
+                // Create units first, these will be manipulated by the visitors
+                var identificationUnit = new IdentificationUnit(documentUri, tree);
                 var callUnit = new CallStatementUnit(documentUri, tree);
                 var includeUnit = new IncludeUnit(documentUri, tree);
+
                 // Create different visitors and units
                 var callVisitor = new CallStatementVisitor(callUnit);
                 var includeVisitor = new CallStatementVisitor(callUnit);
+                var identificationVisitor = new IdentificationVisitor(identificationUnit);
 
                 callVisitor.Visit(tree);
                 includeVisitor.Visit(tree);
+                identificationVisitor.Visit(tree);
 
                 var units = new List<ICobolUnit>
                 {
-                    callUnit
+                    callUnit,
+                    identificationUnit
                 };
 
                 documents[documentUri] = units;
+                if(identificationUnit.programName != null && !string.IsNullOrEmpty(identificationUnit.programName))
+                {
+                    // Add the program name to the dictionary
+                    if (!programNamesToUri.ContainsKey(identificationUnit.programName))
+                    {
+                        programNamesToUri[identificationUnit.programName] = documentUri;
+                    }
+                }
 
                 if (parser.HasErrors)
                 {
@@ -197,33 +222,28 @@ namespace LanguageServer
                 // For now, let's simulate two possible targets as an example
                 var possibleLocations = new List<Location>();
 
-                // Search in includes folder for possible program files
-                var workspacePath = new Uri(@params.TextDocument.Uri.ToString()).LocalPath;
-                var workspaceDir = Path.GetDirectoryName(workspacePath);
-                if (workspaceDir != null)
-                {
-                    var includesPath = Path.Combine(workspaceDir, "includes");
 
-                    if (Directory.Exists(includesPath))
+
+          
+                    var files = callInfo.ProgramName.Split(',')
+                        .Select(name => programNamesToUri.ContainsKey(name.Trim()) ? programNamesToUri[name.Trim()] : null)
+                        .Where(uri => uri != null)
+                        .Distinct()
+                        .ToList();
+
+                    foreach (var file in files)
                     {
-                        // Search for files that match the program name
-                        var files = Directory.GetFiles(includesPath, $"{callInfo.ProgramName}*.cbl", SearchOption.AllDirectories)
-                                           .Concat(Directory.GetFiles(includesPath, $"{callInfo.ProgramName}*.cpy", SearchOption.AllDirectories));
-
-                        foreach (var file in files)
+                        possibleLocations.Add(new Location
                         {
-                            possibleLocations.Add(new Location
+                            Uri = new Uri(file),
+                            Range = new Microsoft.VisualStudio.LanguageServer.Protocol.Range
                             {
-                                Uri = new Uri(file),
-                                Range = new Microsoft.VisualStudio.LanguageServer.Protocol.Range
-                                {
-                                    Start = new Position(0, 0),
-                                    End = new Position(0, 0)
-                                }
-                            });
-                        }
+                                Start = new Position(0, 0),
+                                End = new Position(0, 0)
+                            }
+                        });
                     }
-                }
+                
 
                 // If we found any locations, return them
                 if (possibleLocations.Count > 0)
@@ -273,28 +293,37 @@ namespace LanguageServer
                     }
                 };
 
-                var response = await rpc.InvokeAsync<JToken[]>("workspace/configuration", configurationParams);
-                var programPath = response?[0]?["programPath"]?.ToString();
 
-                var foldersToScan = new List<string>();
+                var foldersToScan = new List<string>(){workspacePath};
+               /* 
+                    var response = await rpc.InvokeAsync<JToken[]>("workspace/configuration", configurationParams);
+                    var programPath = response?[0]?["programPath"]?.ToString();
 
-                // Add custom program path if specified
-                if (!string.IsNullOrEmpty(programPath))
-                {
-                    var customPath = programPath.StartsWith("/") 
-                        ? programPath // Absolute path
-                        : Path.Combine(workspacePath, programPath); // Relative path
                     
-                    if (Directory.Exists(customPath))
+                    
+                    // If no response or invalid configuration, use default workspace path
+                    if (response == null || programPath == null)
                     {
-                        foldersToScan.Add(customPath);
+                        foldersToScan.Add(workspacePath);
+                        Console.WriteLine("No custom program path configured, using workspace root");
                     }
-                }
-                else
-                {
-                    // If no custom path, scan the entire workspace
-                    foldersToScan.Add(workspacePath);
-                }
+                    else 
+                    {
+                        var customPath = programPath.StartsWith("/") 
+                            ? programPath // Absolute path
+                            : Path.Combine(workspacePath, programPath); // Relative path
+                        
+                        if (Directory.Exists(customPath))
+                        {
+                            foldersToScan.Add(customPath);
+                        }
+                        else
+                        {
+                            Console.WriteLine($"Configured program path '{customPath}' does not exist, using workspace root");
+                            foldersToScan.Add(workspacePath);
+                        }
+                    }*/
+
 
                 // Always add includes path if it exists
                 var includesFolderPath = Path.Combine(workspacePath, includesPath);
@@ -305,8 +334,8 @@ namespace LanguageServer
 
                 foreach (var folder in foldersToScan)
                 {
-                    var cobolFiles = Directory.GetFiles(folder, "*.cbl", SearchOption.AllDirectories)
-                        .Concat(Directory.GetFiles(folder, "*.cpy", SearchOption.AllDirectories));
+                    var cobolFiles = Directory.GetFiles(folder, "*.cbl", SearchOption.AllDirectories);
+                        
 
                     foreach (var file in cobolFiles)
                     {

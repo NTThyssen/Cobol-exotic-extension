@@ -1,10 +1,13 @@
 # cobol-language-support README
 
-This is the README for your extension "cobol-language-support". After writing up a brief description, we recommend including the following sections.
-
 ## Features
 
 Describe specific features of your extension including screenshots of your extension in action. Image paths are relative to this README file.
+
+This extension allows to jump between call statements in cobol.
+
+For example is "CALL 'MYPROG' USING MY-GROUP",  by using go to definition "ctrl+click"  you can go to the programfile which is being called
+
 
 For example if there is an image subfolder under your extension project workspace:
 

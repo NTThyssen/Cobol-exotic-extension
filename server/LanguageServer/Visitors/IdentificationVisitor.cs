@@ -19,8 +19,8 @@ namespace LanguageServer.Visitors
 
         public override object VisitProgramIdParagraph(CobolParser.ProgramIdParagraphContext context)
         {
-       
-            string programName = context.PROGRAM_ID().GetText();
+
+            string programName = context.programName().GetText();
 
             _unit.programName = programName;
 
