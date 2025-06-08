@@ -22,10 +22,10 @@
     <Compile Include="obj/Debug/net9.0/CobolParser.cs" />
     <Compile Include="obj/Debug/net9.0/CobolParserVisitor.cs" />
     <Compile Include="obj/Debug/net9.0/CobolParserBaseVisitor.cs" />
-     <Compile Include="obj/Debug/net9.0/CobolPreprocessorLexer.cs" />
+    <Compile Include="obj/Debug/net9.0/CobolPreprocessorLexer.cs" />
     <Compile Include="obj/Debug/net9.0/CobolPreprocessorParser.cs" />
-    <Compile Include="obj/Debug/net9.0/CobolPreprocessorParserVisitor.cs" />
-    <Compile Include="obj/Debug/net9.0/CobolPreprocessorParserBaseVisitor.cs" />
+    <Compile Include="obj/Debug/net9.0/CobolPreprocessorVisitor.cs" />
+    <Compile Include="obj/Debug/net9.0/CobolPreprocessorBaseVisitor.cs" />
   </ItemGroup>
 
   <ItemGroup>

@@ -7,7 +7,7 @@ namespace LanguageServer.Visitors
     /// <summary>
     /// Visitor for traversing the Cobol preprocessor parse tree.
     /// </summary>
-    public class PreProcessorVisitor : CobolPreprocessorParserBaseVisitor<object?>
+    public class PreProcessorVisitor : CobolPreprocessorBaseVisitor<object?>
     {
         public override object? VisitStartRule([NotNull] CobolPreprocessorParser.StartRuleContext context)
         {
