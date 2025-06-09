@@ -1,4 +1,4 @@
-namespace CobolTranspiler;
+namespace CobolDevExtension;
 
 public class CobolDataVariable
 {
@@ -23,25 +23,3 @@ public class CobolDataVariable
     }
 }
 
-
-public interface ICobolNode
-{
-    string Name { get; }
-    void Execute();
-}
-
-public class CobolDataNode : ICobolNode
-{
-    public string Name { get; set; }
-    public List<CobolDataVariable> Variables { get; set; } = new List<CobolDataVariable>();
-
-    public void Execute() { /* Execution logic for data division nodes */ }
-}
-
-public class CobolProcedureNode : ICobolNode
-{
-    public string Name { get; set; }
-    public List<string> Instructions { get; set; } = new List<string>();
-
-    public void Execute() { /* Execution logic for procedure division nodes */ }
-}

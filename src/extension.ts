@@ -59,7 +59,8 @@ export function activate(context: vscode.ExtensionContext) {
 	const clientOptions: LanguageClientOptions = {
 		documentSelector: [{ scheme: 'file', language: 'cobol' }],
 		synchronize: {
-			fileEvents: vscode.workspace.createFileSystemWatcher('**/*.{cbl,cob,cpy}')
+			fileEvents: vscode.workspace.createFileSystemWatcher('**/*.{cbl,cob,cpy}'),
+			configurationSection: "cobol"
 		}
 	};
 
@@ -76,14 +77,25 @@ export function activate(context: vscode.ExtensionContext) {
 		console.log(`Client state changed: ${e.newState}`);
 	});
 
+
+
+
     
 	// Start the client. This will also launch the server
 	try {
 		console.log('Starting COBOL Language Client...');
-		client.start();
+		client.start().then(() => {
+		const config = vscode.workspace.getConfiguration('cobol');
+		client.sendNotification('workspace/didChangeConfiguration', {
+			settings: { cobol: config }
+		});
+		});
 	} catch (err) {
 		console.error('Failed to start COBOL Language Client:', err);
 	}
+
+	  context.subscriptions.push({ dispose: () => client.stop() });
+
 }
 
 // This method is called when your extension is deactivated

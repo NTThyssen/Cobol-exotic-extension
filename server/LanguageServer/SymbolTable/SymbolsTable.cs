@@ -1,5 +1,5 @@
 
-namespace CobolTranspiler;
+namespace CobolDevExtension;
 
 public class SymbolTable
 {
