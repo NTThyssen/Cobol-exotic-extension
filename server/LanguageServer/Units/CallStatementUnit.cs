@@ -13,9 +13,9 @@ using Antlr4.Runtime;
         public List<CallInfo> CallStatements { get; }
 
         // Helper method to add found CALL statements
-        public void AddCallStatement(string programName, Microsoft.VisualStudio.LanguageServer.Protocol.Range location, string sourceText)
+        public void AddCallStatement(string programName, Microsoft.VisualStudio.LanguageServer.Protocol.Range location, List<string>? possibleVariableValues = null)
         {
-            CallStatements.Add(new CallInfo(programName, location, sourceText));
+            CallStatements.Add(new CallInfo(programName, location, possibleVariableValues));
         }
     }
 

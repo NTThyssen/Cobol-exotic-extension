@@ -44,7 +44,7 @@ public class SymbolTable
         return node?.Value;
     }
 
-    public void SetValue(string name, object value)
+    public void SetValue(string name, string value)
     {
         var node = GetDataNode(name);
         if (node != null)

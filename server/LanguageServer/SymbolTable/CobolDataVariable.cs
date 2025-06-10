@@ -14,7 +14,7 @@ public class CobolDataVariable
     public CobolDataVariable RedefinedVar {get; set; }
 
     public List<CobolDataVariable> Children { get; set; } = new List<CobolDataVariable>();
-    public object Value { get; set; }
+    public string Value { get; set; }
 
     public void AddChild(CobolDataVariable child)
     {

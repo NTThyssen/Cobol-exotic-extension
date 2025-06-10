@@ -2,33 +2,51 @@ using System.Text;
 using Antlr4.Runtime.Misc;
 using LanguageServer.grammar;
 using Antlr4.Runtime.Tree;
-using CobolTranspiler; // Add this if CobolParserBaseVisitor is in this namespace
 using Antlr4.Runtime;
 using Microsoft.VisualStudio.LanguageServer.Protocol;
 using Range = Microsoft.VisualStudio.LanguageServer.Protocol.Range;
+using CobolDevExtension;
 
 namespace LanguageServer.Visitors
 {
     public class CallstatementVisitor : CobolParserBaseVisitor<object>
     {
+        private SymbolTable _symbolTable = SymbolTable.Instance;
         private readonly CallStatementUnit _unit;
-
+        private List<string> possibleVariableValues = new List<string>();
         public CallstatementVisitor(CallStatementUnit unit)
         {
             _unit = unit;
         }
 
+
+        public override object VisitSetStatement([NotNull] CobolParser.SetStatementContext context)
+        {
+    
+            var varNameParent = context.setToStatement().receivingField()[0].generalIdentifier().qualifiedDataName().variableUsageName().GetText();
+            var nameChildValue = context.setToStatement().sendingField().generalIdentifier().qualifiedDataName().variableUsageName().GetText();
+            CobolDataVariable variable = _symbolTable.GetDataNode(varNameParent);
+
+            foreach (var element in variable.Children)
+            {
+                if (element.Name != nameChildValue) continue;
+                
+                possibleVariableValues.Add(element.Value.Trim('\''));
+            }
+
+            return base.VisitSetStatement(context);
+        }
+
+
+        public override object VisitSectionOrParagraph([NotNull] CobolParser.SectionOrParagraphContext context)
+        {
+            possibleVariableValues.Clear();
+            return base.VisitSectionOrParagraph(context);
+        }
+
         public override object VisitCallStatement(CobolParser.CallStatementContext context)
         {
-            // Extract program name - assuming the COBOL grammar has a proper 
-            // identifier or literal node for the program name
-            var programNameContext = context.children[1].GetText();
-            if (programNameContext == null) return null;
 
-            string programName = programNameContext.Trim('\'', '"');
-
-            // Create range for the CALL statement location
-            
             var range = new Range
             {
                 Start = new Position
@@ -44,12 +62,16 @@ namespace LanguageServer.Visitors
             };
 
             // Get the original source text
-            string sourceText = context.generalIdentifier() != null
-                ? context.generalIdentifier().GetText()
-                : context.constantName().GetText().Replace("'", "");
+            if(context.generalIdentifier() != null)
+            {
+                _unit.AddCallStatement(context.generalIdentifier().GetText(), range, possibleVariableValues);
+            }
 
-            // Add to our unit
-            _unit.AddCallStatement(programName, range, sourceText);
+            if(context.constantName() != null)
+            {
+                var programName = context.constantName().GetText().Replace("'", "");
+                _unit.AddCallStatement(programName, range);
+            }          
 
             return base.VisitCallStatement(context);
         }

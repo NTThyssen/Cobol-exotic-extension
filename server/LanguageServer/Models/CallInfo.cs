@@ -5,12 +5,12 @@ public class CallInfo
 {
     public string ProgramName { get; set; }
     public Range Location { get; set; }
-    public string SourceText { get; set; }
+    public List<string> PossibleVariableValues { get; set; } = new List<string>();
 
-    public CallInfo(string programName, Range location, string sourceText)
+    public CallInfo(string programName, Range location, List<string>? possibleVariableValues = null)
     {
         ProgramName = programName;
         Location = location;
-        SourceText = sourceText;
+        PossibleVariableValues = possibleVariableValues ?? new List<string>();
     }
 }

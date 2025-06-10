@@ -99,6 +99,9 @@ namespace LanguageServer
                 var preVisitor = new PreProcessorVisitor(copybookUnit, documents);
                 preVisitor.Visit(preTree);
 
+
+
+
                 // Remove lines that match: optional whitespace, COPY, whitespace, identifier, dot, optional whitespace
                 var regex = new System.Text.RegularExpressions.Regex(@"^\s*COPY\s+[-A-Za-z0-9_]+\.\s*$", System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.Multiline);
                 var newText = regex.Replace(text, copybookUnit.CopybookText);
@@ -111,8 +114,11 @@ namespace LanguageServer
                 var callUnit = new CallStatementUnit(documentUri, tree);
                 var includeUnit = new IncludeUnit(documentUri, tree);
 
+
+                var workingStorageSectionVisitor = new WorkingStorageSectionVisitor();
                 var cobolVisitor = new CallstatementVisitor(callUnit);
                 var identificationVisitor = new IdentificationVisitor(identificationUnit);
+                workingStorageSectionVisitor.Visit(tree);
                 cobolVisitor.Visit(tree);
                 identificationVisitor.Visit(tree);
 
@@ -225,25 +231,38 @@ namespace LanguageServer
                 // For now, let's simulate two possible targets as an example
                 var possibleLocations = new List<Location>();
 
-          
-                    var files = callInfo.ProgramName.Split(',')
-                        .Select(name => programNamesToUri.ContainsKey(name.Trim()) ? programNamesToUri[name.Trim()] : null)
-                        .Where(uri => uri != null)
-                        .Distinct()
-                        .ToList();
-
-                    foreach (var file in files)
+                    if(callInfo.PossibleVariableValues.Count > 1)
                     {
-                        possibleLocations.Add(new Location
+                        foreach (var variableValue in callInfo.PossibleVariableValues)
                         {
-                            Uri = new Uri(file),
-                            Range = new Microsoft.VisualStudio.LanguageServer.Protocol.Range
-                            {
-                                Start = new Position(0, 0),
-                                End = new Position(0, 0)
+                            var uri = programNamesToUri.ContainsKey(variableValue) ? programNamesToUri[variableValue] : null;
+                                possibleLocations.Add(new Location
+                                {
+                                    Uri = new Uri(uri),
+                                    Range = new Microsoft.VisualStudio.LanguageServer.Protocol.Range
+                                    {
+                                        Start = new Position(0, 0),
+                                        End = new Position(0, 0)
+                                    }
+                                });
                             }
-                        });
+                        
+                    }else{
+                        
+                        var file = programNamesToUri.ContainsKey(callInfo.ProgramName) ? programNamesToUri[callInfo.ProgramName] : null;
+        
+                            possibleLocations.Add(new Location
+                            {
+                                Uri = new Uri(file),
+                                Range = new Microsoft.VisualStudio.LanguageServer.Protocol.Range
+                                {
+                                    Start = new Position(0, 0),
+                                    End = new Position(0, 0)
+                                }
+                            });
+                    
                     }
+
                 
 
                 // If we found any locations, return them

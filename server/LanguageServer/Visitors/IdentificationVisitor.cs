@@ -2,7 +2,6 @@ using System.Text;
 using Antlr4.Runtime.Misc;
 using LanguageServer.grammar;
 using Antlr4.Runtime.Tree;
-using CobolTranspiler; // Add this if CobolParserBaseVisitor is in this namespace
 using Antlr4.Runtime;
 using Microsoft.VisualStudio.LanguageServer.Protocol;
 
