@@ -113,20 +113,24 @@ namespace LanguageServer
                 var identificationUnit = new IdentificationUnit(documentUri, tree);
                 var callUnit = new CallStatementUnit(documentUri, tree);
                 var includeUnit = new IncludeUnit(documentUri, tree);
+                var paragraphUnit = new ParagraphUnit(documentUri, tree);
 
 
                 var workingStorageSectionVisitor = new WorkingStorageSectionVisitor();
                 var cobolVisitor = new CallstatementVisitor(callUnit);
                 var identificationVisitor = new IdentificationVisitor(identificationUnit);
+                var paragraphVisitor = new ParagraphVisitor(paragraphUnit);
                 workingStorageSectionVisitor.Visit(tree);
                 cobolVisitor.Visit(tree);
                 identificationVisitor.Visit(tree);
+                paragraphVisitor.Visit(tree);
 
                 var units = new List<ICobolUnit>
                 {
                     callUnit,
                     identificationUnit,
                     copybookUnit,
+                    paragraphUnit,
                 };
 
                 documents.AddUnits(documentUri,units);
@@ -214,12 +218,14 @@ namespace LanguageServer
         public Task<Location[]> TextDocumentDefinition(TextDocumentPositionParams @params)
         {
             var callUnit = documents.GetUnit<CallStatementUnit>(@params.TextDocument.Uri.ToString());
+            var paragraphUnit = documents.GetUnit<ParagraphUnit>(@params.TextDocument.Uri.ToString());
             var copyUnit = documents.GetUnit<CopybookUnit>(@params.TextDocument.Uri.ToString());
 
-            if (callUnit == null) return Task.FromResult(Array.Empty<Location>());
+            if (callUnit == null && paragraphUnit == null)
+                return Task.FromResult(Array.Empty<Location>());
 
 
-            var callInfo = callUnit.CallStatements.FirstOrDefault(c =>
+            var callInfo = callUnit?.CallStatements.FirstOrDefault(c =>
                 {
                     var adjustedPosition = new Position(@params.Position.Line + copyUnit.lineOffSet, @params.Position.Character);
                     return c.Location.Contains(adjustedPosition);
@@ -292,6 +298,30 @@ namespace LanguageServer
                 var y = new List<Location> { location, location2 };
                 return Task.FromResult(y.ToArray());
             }
+
+            if (paragraphUnit != null)
+            {
+                var paragraphCall = paragraphUnit.Calls.FirstOrDefault(c =>
+                {
+                    var adjustedPosition = new Position(@params.Position.Line + copyUnit.lineOffSet, @params.Position.Character);
+                    return c.Location.Contains(adjustedPosition);
+                });
+
+                if (paragraphCall != null)
+                {
+                    var definition = paragraphUnit.Paragraphs.FirstOrDefault(p => p.Name == paragraphCall.Name);
+                    if (definition != null)
+                    {
+                        var loc = new Location
+                        {
+                            Uri = new Uri(@params.TextDocument.Uri.ToString()),
+                            Range = definition.Location
+                        };
+                        return Task.FromResult(new[] { loc });
+                    }
+                }
+            }
+
             return Task.FromResult(Array.Empty<Location>());
         }
 
