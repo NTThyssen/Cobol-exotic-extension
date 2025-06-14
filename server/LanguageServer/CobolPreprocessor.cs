@@ -1,5 +1,4 @@
 using Antlr4.Runtime;
-using LanguageServer.grammar;
 
 namespace LanguageServer.Visitors
 {
@@ -38,8 +37,7 @@ namespace LanguageServer.Visitors
     public class ParsingErrorListener : IAntlrErrorListener<IToken>
     {
         private readonly List<string> errors = new();
-
-        public void SyntaxError(IRecognizer recognizer, IToken offendingSymbol, int line, int charPositionInLine, string msg, RecognitionException e)
+        public void SyntaxError(TextWriter output, IRecognizer recognizer, IToken offendingSymbol, int line, int charPositionInLine, string msg, RecognitionException e)
         {
             errors.Add($"Line {line}:{charPositionInLine} {msg}");
         }

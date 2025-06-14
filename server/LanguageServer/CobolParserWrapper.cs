@@ -1,6 +1,5 @@
 using Antlr4.Runtime;
 using Antlr4.Runtime.Tree;
-using LanguageServer.grammar;
 using System;
 using System.Collections.Generic;
 
@@ -41,7 +40,7 @@ namespace LanguageServer
     {
         private readonly List<string> errors = new();
 
-        public void SyntaxError(IRecognizer recognizer, IToken offendingSymbol, int line, int charPositionInLine, string msg, RecognitionException e)
+        public void SyntaxError(TextWriter output, IRecognizer recognizer, IToken offendingSymbol, int line, int charPositionInLine, string msg, RecognitionException e)
         {
             errors.Add($"Line {line}:{charPositionInLine} {msg}");
         }

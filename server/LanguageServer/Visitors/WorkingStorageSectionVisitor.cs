@@ -2,7 +2,7 @@
 
 using Antlr4.Runtime.Misc;
 using CobolDevExtension;
-using LanguageServer.grammar;
+using LanguageServer;
 
 public class WorkingStorageSectionVisitor : CobolParserBaseVisitor<object>
 {

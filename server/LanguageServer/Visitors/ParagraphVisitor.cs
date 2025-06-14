@@ -1,5 +1,5 @@
 using Antlr4.Runtime.Misc;
-using LanguageServer.grammar;
+using LanguageServer;
 using Microsoft.VisualStudio.LanguageServer.Protocol;
 using Range = Microsoft.VisualStudio.LanguageServer.Protocol.Range;
 
